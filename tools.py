@@ -34,7 +34,7 @@ def canvas_to_image(root, canvas):
     # img = Image.open(BytesIO(eps.encode('utf-8')))
     # img = Image.open(BytesIO(bytes(eps,'ascii')))
 
-    img.save("processed_image.jpeg")
+    # img.save("processed_image.jpeg")
     return img
 
 

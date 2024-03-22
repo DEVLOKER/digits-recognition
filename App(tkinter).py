@@ -27,10 +27,8 @@ class App(tk.Tk):
 
     def classify_handwriting(self):
         img = canvas_to_image(self, self.canvas)
-        # img.save("processed_image.jpeg")
-        # digit, acc = 0, 0
-        digit, acc = self.model.predict_digit(img)
-        self.label.configure(text= ' digit : {} \n accuracy: {}%'.format(digit, int(acc*100)))
+        digit, accuracy, prediction = self.model.predict_digit(img)
+        self.label.configure(text= ' digit : {} \n accuracy: {:.2f}%'.format(digit, accuracy*100))
     
     def draw_lines(self, event):
         self.x = event.x

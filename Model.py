@@ -25,7 +25,7 @@ class Model(object):
             self.train()
         else:
             self.load(modal_path)
-        self.model.summary()
+        # self.model.summary()
         # tf.keras.utils.plot_model( self.model, show_shapes=True, show_layer_names=True)
 
     def build(self):
@@ -166,21 +166,17 @@ class Model(object):
         # prepare the image
         img_array = self.process_image(img)
         #predicting
-        prediction = self.model.predict(img_array)
-        print(prediction)
+        prediction = self.model.predict([img_array])[0]
         predicted_digit = np.argmax(prediction)
-        accuracy = max(prediction[0])
-        return predicted_digit, accuracy
+        accuracy = max(prediction)
+        return predicted_digit, accuracy, prediction
     
     def process_image(self, img):
-        # img.save("processed_image.jpeg")
         #resize image to 28x28 pixels
         img = img.resize((28,28))
         #convert rgb to grayscale
         img = img.convert('L')
         img_array = np.array(img)
-        # im = Image.fromarray(img_array)
-        # im.save("processed_image.jpeg")
         img_array = img_array.reshape(1,28,28,1)
         img_array = img_array/255.0
         img_array = 1 - img_array
@@ -212,6 +208,6 @@ if __name__ == "__main__":
     # Load the image
     image_path = "digits/9.jpg"
     img = Image.open(image_path).convert('L')
-    digit, acc = model.predict_digit(img)
-    print(' digit : {} \n accuracy: {}%'.format(digit, int(acc*100)))
+    digit, accuracy, prediction = model.predict_digit(img)
+    print(' digit : {} \n accuracy: {:.2f}%'.format(digit, accuracy*100))
     
