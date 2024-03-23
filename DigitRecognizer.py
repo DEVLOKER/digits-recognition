@@ -35,8 +35,19 @@ class DigitRecognizer(object):
         self.log()
         
     def build(self):
-        self.model = tf.keras.Sequential()
-        self.model.add(tf.keras.layers.Convolution2D(
+        self.model = DigitRecognizer.CNN() # Convolutional Neural Network
+        # self.model = DigitRecognizer.MLP() # Multilayer Perceptron
+        self.model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+            loss=tf.keras.losses.sparse_categorical_crossentropy,
+            metrics=['accuracy']
+        )
+
+    # Convolutional Neural Network (CNN)
+    @staticmethod
+    def CNN():
+        model = tf.keras.models.Sequential()
+        model.add(tf.keras.layers.Convolution2D(
             input_shape=DigitRecognizer.input_shape,
             kernel_size=5,
             filters=8,
@@ -44,72 +55,58 @@ class DigitRecognizer(object):
             activation=tf.keras.activations.relu,
             kernel_initializer=tf.keras.initializers.VarianceScaling()
         ))
-        self.model.add(tf.keras.layers.MaxPooling2D(
+        model.add(tf.keras.layers.MaxPooling2D(
             pool_size=(2, 2),
             strides=(2, 2)
         ))
-        self.model.add(tf.keras.layers.Convolution2D(
+        model.add(tf.keras.layers.Convolution2D(
             kernel_size=5,
             filters=16,
             strides=1,
             activation=tf.keras.activations.relu,
             kernel_initializer=tf.keras.initializers.VarianceScaling()
         ))
-        self.model.add(tf.keras.layers.MaxPooling2D(
+        model.add(tf.keras.layers.MaxPooling2D(
             pool_size=(2, 2),
             strides=(2, 2)
         ))
-        self.model.add(tf.keras.layers.Flatten())
-        self.model.add(tf.keras.layers.Dense(
+        model.add(tf.keras.layers.Flatten())
+        model.add(tf.keras.layers.Dense(
             units=DigitRecognizer.batch_size,
             activation=tf.keras.activations.relu
         ))
-        self.model.add(tf.keras.layers.Dropout(0.2))
-        self.model.add(tf.keras.layers.Dense(
-            units=10,
+        model.add(tf.keras.layers.Dropout(0.2))
+        model.add(tf.keras.layers.Dense(
+            units=DigitRecognizer.num_classes,
             activation=tf.keras.activations.softmax,
             kernel_initializer=tf.keras.initializers.VarianceScaling()
         ))
-        self.model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-            loss=tf.keras.losses.sparse_categorical_crossentropy,
-            metrics=['accuracy']
-        )
+        return model
 
-        # self.model = tf.keras.Sequential(layers=[
-        #     tf.layers.Conv2D(filters=10, kernel_size=3, activation="relu", input_shape=DigitRecognizer.input_shape),
-        #     tf.keras.layers.Conv2D(10, 3, activation="relu"),
-        #     tf.keras.layers.MaxPool2D(),
-        #     tf.keras.layers.Conv2D(10, 3, activation="relu"),
-        #     tf.keras.layers.Conv2D(10, 3, activation="relu"),
-        #     tf.keras.layers.MaxPool2D(),
-        #     tf.keras.layers.Flatten(),
-        #     tf.keras.layers.Dense(DigitRecognizer.num_classes, activation="softmax")
-        # ])
-        # self.model.compile(loss="sparse_categorical_crossentropy", optimizer=tf.keras.optimizers.Adam(), metrics=["accuracy"])
-        
-        # self.model = model = keras.Sequential([
-        #     layers.Conv2D(32, kernel_size=(5, 5),activation='relu',input_shape=DigitRecognizer.input_shape),
-        #     layers.MaxPooling2D(pool_size=(2, 2)),
-        #     layers.Conv2D(64, (3, 3), activation='relu'),
-        #     layers.MaxPooling2D(pool_size=(2, 2)),
-        #     layers.Flatten(),
-        #     layers.Dense(128, activation='relu'),
-        #     layers.Dropout(0.3),
-        #     layers.Dense(64, activation='relu'),
-        #     layers.Dropout(0.5),
-        #     layers.Dense(DigitRecognizer.num_classes, activation='softmax')
-        # ])
-        # self.model.compile(loss=keras.losses.categorical_crossentropy,optimizer=keras.optimizers.Adadelta(),metrics=['accuracy'])
-        
-        # self.model = models.Sequential(layers=[
-        #     layers.Input(shape=(28, 28)),  # Use Input layer with shape argument
-        #     layers.Flatten(),  # Flatten the input : input_shape=(28, 28)
-        #     layers.Dense(128, activation='relu'),  # Hidden layer with 128 neurons
-        #     layers.Dropout(0.2),  # Dropout layer for regularization
-        #     layers.Dense(10, activation='softmax')  # Output layer with 10 units for 10 classes
-        # ])
-        # self.model.compile(optimizer='adam', loss='sparse_categorical_crossentropy',  metrics=['accuracy'])
+    # Multilayer Perceptron
+    @staticmethod
+    def MLP():
+        model = tf.keras.models.Sequential(layers=[
+            tf.keras.layers.Flatten(
+                input_shape=DigitRecognizer.input_shape
+            ),  # Use Input layer with shape argument
+            tf.keras.layers.Dense(
+                units=DigitRecognizer.batch_size,
+                activation=tf.keras.activations.relu,
+                kernel_regularizer=tf.keras.regularizers.l2(0.002) 
+            ),  # Hidden layer with 128 neurons
+            tf.keras.layers.Dense(
+                units=DigitRecognizer.batch_size,
+                activation=tf.keras.activations.relu,
+                kernel_regularizer=tf.keras.regularizers.l2(0.002)
+            ),  # Dropout layer for regularization
+            tf.keras.layers.Dense(
+                units=DigitRecognizer.num_classes,
+                activation=tf.keras.activations.softmax
+            ) # Output layer with 10 units for 10 classes
+        ])
+        return model
+
 
     def train(self):
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
