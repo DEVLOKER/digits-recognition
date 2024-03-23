@@ -1,7 +1,6 @@
 import numpy as np
 import base64
 from PIL import Image, ImageOps, ImageChops
-from skimage import exposure
 from io import BytesIO
 import win32gui
 from PIL import ImageGrab, Image
@@ -82,12 +81,6 @@ def resize_image(image, width=8, height=8):
 
 def invert_colors(image):
     return ImageOps.invert(image)
-
-
-def scale_down_intensity(image):
-    image_arr = np.array(image)
-    image_arr = exposure.rescale_intensity(image_arr, out_range=(0, 16))
-    return Image.fromarray(image_arr)
 
 
 def to_grayscale(image):

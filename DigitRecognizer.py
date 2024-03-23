@@ -189,25 +189,6 @@ class DigitRecognizer(object):
         img_array = 1 - img_array
         return img_array
 
-
-        # if not image.getbbox(): # Is the image empty
-        #     return None
-        
-        # img = img.resize((28, 28))  # Resize to match model input shape
-        # img_array = np.array(img) / 255.0  # Normalize pixel values
-        # img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
-        # return img_array
-
-        # img = replace_transparent_background(img)
-        # img = trim_borders(img)
-        # img = pad_image(img)
-        # img = to_grayscale(img)
-        # img = invert_colors(img)
-        # img = resize_image(img, 28, 28)
-        # img = scale_down_intensity(img)
-        # img_array = np.array([ np.array(img).flatten() ])
-        # return img_array
-
     def log(self):
         tf.keras.utils.plot_model( self.model, to_file=pathlib.Path(DigitRecognizer.log_dir, "model_plot.jpg"), show_shapes=True, show_layer_names=True)
         self.model.summary()
