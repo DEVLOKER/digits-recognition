@@ -1,23 +1,30 @@
-import os
+import os, io
 # Set TF_ENABLE_ONEDNN_OPTS environment variable to 0
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-import numpy as np
 import tensorflow as tf
-from tensorflow.keras.utils import plot_model
 import matplotlib.pyplot as plt
-import datetime
-from tools import *
+import numpy as np
+from PIL import Image
+import pandas as pd
+from datetime import datetime
+import json
+from contextlib import redirect_stdout
+import pathlib
 
 
-class Model(object):
+root_dir = pathlib.Path(__file__).parent
+
+class DigitRecognizer(object):
 
     input_shape = (28, 28, 1) # image dimension (width, height), channels (1)
     num_classes = 10 # output dimension (from 0 to 9)
-    batch_size = 128
-    epochs = 5 # number of tests
+    batch_size = 128 # output shape
+    epochs = 10 # number of tests
 
-    model_name = 'trained-model.h5'
+    model_name = 'trained-model.keras'
+    log_dir = pathlib.Path(root_dir, ".logs") # + datetime.now().strftime("%Y%m%d-%H%M%S")
+    
 
     def __init__(self, modal_path=None):
         if(modal_path is None):
@@ -25,65 +32,64 @@ class Model(object):
             self.train()
         else:
             self.load(modal_path)
-        # self.model.summary()
-        # tf.keras.utils.plot_model( self.model, show_shapes=True, show_layer_names=True)
-
+        self.log()
+        
     def build(self):
-        # self.model = tf.keras.Sequential()
-        # self.model.add(tf.keras.layers.Convolution2D(
-        #     input_shape=Model.input_shape,
-        #     kernel_size=5,
-        #     filters=8,
-        #     strides=1,
-        #     activation=tf.keras.activations.relu,
-        #     kernel_initializer=tf.keras.initializers.VarianceScaling()
-        # ))
-        # self.model.add(tf.keras.layers.MaxPooling2D(
-        #     pool_size=(2, 2),
-        #     strides=(2, 2)
-        # ))
-        # self.model.add(tf.keras.layers.Convolution2D(
-        #     kernel_size=5,
-        #     filters=16,
-        #     strides=1,
-        #     activation=tf.keras.activations.relu,
-        #     kernel_initializer=tf.keras.initializers.VarianceScaling()
-        # ))
-        # self.model.add(tf.keras.layers.MaxPooling2D(
-        #     pool_size=(2, 2),
-        #     strides=(2, 2)
-        # ))
-        # self.model.add(tf.keras.layers.Flatten())
-        # self.model.add(tf.keras.layers.Dense(
-        #     units=128,
-        #     activation=tf.keras.activations.relu
-        # ))
-        # self.model.add(tf.keras.layers.Dropout(0.2))
-        # self.model.add(tf.keras.layers.Dense(
-        #     units=10,
-        #     activation=tf.keras.activations.softmax,
-        #     kernel_initializer=tf.keras.initializers.VarianceScaling()
-        # ))
-        # self.model.compile(
-        #     optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-        #     loss=tf.keras.losses.sparse_categorical_crossentropy,
-        #     metrics=['accuracy']
-        # )
+        self.model = tf.keras.Sequential()
+        self.model.add(tf.keras.layers.Convolution2D(
+            input_shape=DigitRecognizer.input_shape,
+            kernel_size=5,
+            filters=8,
+            strides=1,
+            activation=tf.keras.activations.relu,
+            kernel_initializer=tf.keras.initializers.VarianceScaling()
+        ))
+        self.model.add(tf.keras.layers.MaxPooling2D(
+            pool_size=(2, 2),
+            strides=(2, 2)
+        ))
+        self.model.add(tf.keras.layers.Convolution2D(
+            kernel_size=5,
+            filters=16,
+            strides=1,
+            activation=tf.keras.activations.relu,
+            kernel_initializer=tf.keras.initializers.VarianceScaling()
+        ))
+        self.model.add(tf.keras.layers.MaxPooling2D(
+            pool_size=(2, 2),
+            strides=(2, 2)
+        ))
+        self.model.add(tf.keras.layers.Flatten())
+        self.model.add(tf.keras.layers.Dense(
+            units=DigitRecognizer.batch_size,
+            activation=tf.keras.activations.relu
+        ))
+        self.model.add(tf.keras.layers.Dropout(0.2))
+        self.model.add(tf.keras.layers.Dense(
+            units=10,
+            activation=tf.keras.activations.softmax,
+            kernel_initializer=tf.keras.initializers.VarianceScaling()
+        ))
+        self.model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+            loss=tf.keras.losses.sparse_categorical_crossentropy,
+            metrics=['accuracy']
+        )
 
-        self.model = tf.keras.Sequential([
-            tf.layers.Conv2D(filters=10, kernel_size=3, activation="relu", input_shape=self.input_shape),
-            tf.keras.layers.Conv2D(10, 3, activation="relu"),
-            tf.keras.layers.MaxPool2D(),
-            tf.keras.layers.Conv2D(10, 3, activation="relu"),
-            tf.keras.layers.Conv2D(10, 3, activation="relu"),
-            tf.keras.layers.MaxPool2D(),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(self.num_classes, activation="softmax")
-        ])
-        self.model.compile(loss="sparse_categorical_crossentropy", optimizer=tf.keras.optimizers.Adam(), metrics=["accuracy"])
+        # self.model = tf.keras.Sequential(layers=[
+        #     tf.layers.Conv2D(filters=10, kernel_size=3, activation="relu", input_shape=DigitRecognizer.input_shape),
+        #     tf.keras.layers.Conv2D(10, 3, activation="relu"),
+        #     tf.keras.layers.MaxPool2D(),
+        #     tf.keras.layers.Conv2D(10, 3, activation="relu"),
+        #     tf.keras.layers.Conv2D(10, 3, activation="relu"),
+        #     tf.keras.layers.MaxPool2D(),
+        #     tf.keras.layers.Flatten(),
+        #     tf.keras.layers.Dense(DigitRecognizer.num_classes, activation="softmax")
+        # ])
+        # self.model.compile(loss="sparse_categorical_crossentropy", optimizer=tf.keras.optimizers.Adam(), metrics=["accuracy"])
         
         # self.model = model = keras.Sequential([
-        #     layers.Conv2D(32, kernel_size=(5, 5),activation='relu',input_shape=self.input_shape),
+        #     layers.Conv2D(32, kernel_size=(5, 5),activation='relu',input_shape=DigitRecognizer.input_shape),
         #     layers.MaxPooling2D(pool_size=(2, 2)),
         #     layers.Conv2D(64, (3, 3), activation='relu'),
         #     layers.MaxPooling2D(pool_size=(2, 2)),
@@ -92,7 +98,7 @@ class Model(object):
         #     layers.Dropout(0.3),
         #     layers.Dense(64, activation='relu'),
         #     layers.Dropout(0.5),
-        #     layers.Dense(self.num_classes, activation='softmax')
+        #     layers.Dense(DigitRecognizer.num_classes, activation='softmax')
         # ])
         # self.model.compile(loss=keras.losses.categorical_crossentropy,optimizer=keras.optimizers.Adadelta(),metrics=['accuracy'])
         
@@ -117,24 +123,27 @@ class Model(object):
         # x_train = x_train_normalized.astype(np.float32) 
         # x_test /= x_test_normalized.astype(np.float32)
         # Training the Model on Tensorflow
-        log_dir=".logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=DigitRecognizer.log_dir, histogram_freq=1)
+
+        timer_start = datetime.now()
         training = self.model.fit(
             x_train_normalized,
             y_train,
             epochs=self.epochs,
             validation_data=(x_test_normalized, y_test),
-            callbacks=[tensorboard_callback] # , batch_size=self.batch_size,verbose=1
+            callbacks=[tensorboard_callback] # , batch_size=DigitRecognizer.batch_size,verbose=1
         )
-        print("The model has successfully trained")
+        timer_end = datetime.now()
+        difference = timer_end - timer_start
+        print("The model has successfully trained in {:2f} seconds.".format(difference.total_seconds()))
 
         train_loss, train_accuracy = self.model.evaluate(x_train_normalized, y_train)
         print('Training loss: {}, Training accuracy: {}'.format(train_loss, train_accuracy))
         validation_loss, validation_accuracy = self.model.evaluate(x_test_normalized, y_test)
         print('Validation loss: {}, Validation accuracy: {}'.format(validation_loss, validation_accuracy))
 
-        self.model.save(Model.model_name)#, save_format='h5') # keras | h5
-        print("Saving the model as {}".format(Model.model_name))
+        self.model.save(DigitRecognizer.model_name)#, save_format='h5') # keras | h5
+        print("Saving the model as {}".format(DigitRecognizer.model_name))
 
         # Create a single figure with two subplots
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
@@ -152,14 +161,11 @@ class Model(object):
         ax2.set_ylabel('Loss')
         ax2.set_xlabel('Epoch')
         ax2.legend(['Train', 'Validation'], loc='upper left')
+        plt.savefig(pathlib.Path(DigitRecognizer.log_dir, "training_history.jpg"))
         plt.show()
 
-    def load(self, filename=model_name): # Model.model_name
+    def load(self, filename=model_name): # DigitRecognizer.model_name
         self.model = tf.keras.models.load_model(filename)
-        # self.model.load_weights(filename)
-        # Predictions in form of one-hot vectors (arrays of probabilities).
-        # predictions_one_hot = loaded_model.predict([x_test_normalized])
-        # pd.DataFrame(predictions_one_hot)
         return self.model
     
     def predict_digit(self, img):
@@ -167,6 +173,7 @@ class Model(object):
         img_array = self.process_image(img)
         #predicting
         prediction = self.model.predict([img_array])[0]
+        # print(pd.DataFrame(prediction))
         predicted_digit = np.argmax(prediction)
         accuracy = max(prediction)
         return predicted_digit, accuracy, prediction
@@ -200,14 +207,34 @@ class Model(object):
         # img = scale_down_intensity(img)
         # img_array = np.array([ np.array(img).flatten() ])
         # return img_array
-    
+
+    def log(self):
+        tf.keras.utils.plot_model( self.model, to_file=pathlib.Path(DigitRecognizer.log_dir, "model_plot.jpg"), show_shapes=True, show_layer_names=True)
+        self.model.summary()
+        # model_config = self.model.get_config()
+        model_json = json.loads(self.model.to_json())
+        string_buffer = io.StringIO()
+        with redirect_stdout(string_buffer):
+            self.model.summary()
+        model_summary = string_buffer.getvalue()#.replace('\t', '    ')
+
+        f = open(pathlib.Path(DigitRecognizer.log_dir, "model_json.json"), "w", encoding='utf-8')
+        f.write(json.dumps(model_json, ensure_ascii=False, indent=4))
+        f.close()
+        f = open(pathlib.Path(DigitRecognizer.log_dir, "model_summary.txt"), "w", encoding='utf-8')
+        f.write(model_summary)
+        f.close()
+
+        # self.model.summary(print_fn=lambda x: f.write(x + '\n'))
+        # model_summary = open('model_summary.txt', 'r', encoding='utf-8').read()
+        return model_json, model_summary
 
 if __name__ == "__main__":
-    # model = Model()
-    model = Model(Model.model_name)
+    # digit_recognizer = DigitRecognizer()
+    digit_recognizer = DigitRecognizer(DigitRecognizer.model_name)
     # Load the image
     image_path = "digits/9.jpg"
     img = Image.open(image_path).convert('L')
-    digit, accuracy, prediction = model.predict_digit(img)
+    digit, accuracy, prediction = digit_recognizer.predict_digit(img)
     print(' digit : {} \n accuracy: {:.2f}%'.format(digit, accuracy*100))
     

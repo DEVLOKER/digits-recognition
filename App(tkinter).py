@@ -1,6 +1,7 @@
 from tkinter import *
 import tkinter as tk
-from Model import *
+from DigitRecognizer import *
+from tools import canvas_to_image
 
 class App(tk.Tk):
     def __init__(self, model):
@@ -39,9 +40,9 @@ class App(tk.Tk):
 # Creating an instance of the App class and running the Tkinter event loop
 if __name__ == "__main__":
     # prepare the model
-    model = Model(Model.model_name)
-    # model = Model()
-    # model = None
+    digit_recognizer = DigitRecognizer(DigitRecognizer.model_name)
+    # digit_recognizer = DigitRecognizer()
+    # digit_recognizer = None
     
-    app = App(model)
+    app = App(digit_recognizer)
     app.mainloop()
